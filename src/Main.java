@@ -15,48 +15,43 @@ import javafx.util.Duration;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import java.io.File;
-import javafx.scene.control.Label;
 
 public class Main extends Application {
 
-    LinkedList<Tile> Tiles = new LinkedList<>();
-    final int[][] sequenceInstructions = {
+    private LinkedList<Tile> Tiles = new LinkedList<>();
+    private final int[][] sequenceInstructions = {
             {4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
             {11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
             {1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15},
             {2, 6, 10, 14, 1, 5, 9, 13, 0, 4, 8, 12},
     };
+    private Pane gameBoard = new Pane();
+    private StackPane mainBg = new StackPane();
+    private Scene scene = new Scene(mainBg, 500, 500);
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
-        StackPane mainBg = new StackPane();
+    public void start(Stage primaryStage) {
+
         mainBg.getStyleClass().add("mainBg");
-
-        Pane gameBoard = new Pane();
-        StackPane scorePane = new StackPane();
-
-        generateDesign(gameBoard, scorePane);
-
+        generateDesign();
         mainBg.getChildren().add(gameBoard);
 
-        setGrid(gameBoard, Tiles);
-        generateNumber(Tiles);
+        setGrid();
+        generateNumber();
 
-        Scene scene = new Scene(mainBg, 500, 500);
         scene.getStylesheets().add("style.css");
-
         scene.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.UP) {
-                findDestination(Tiles, gameBoard, 0);
+                findDestination( 0);
             }
             else if (e.getCode() == KeyCode.DOWN) {
-                findDestination(Tiles, gameBoard, 1);
+                findDestination( 1);
             }
             else if (e.getCode() == KeyCode.RIGHT) {
-                findDestination(Tiles, gameBoard, 3);
+                findDestination( 3);
             }
             else if (e.getCode() == KeyCode.LEFT) {
-                findDestination(Tiles, gameBoard, 2);
+                findDestination( 2);
             }
         });
 
@@ -64,24 +59,30 @@ public class Main extends Application {
         primaryStage.show();
     }
 
-    public void moveBlocks(boolean merge, boolean moved, int startIndex, int endIndex, LinkedList<Tile> tiles, Pane grid, int[] generator) {
+    private void resetGame() {
+        gameBoard.getChildren().clear();
+        Tiles.clear();
+        generateDesign();
+        setGrid();
+        generateNumber();
+    }
+
+    private void moveBlocks(boolean merge, boolean moved, int startIndex, int endIndex, int[] generator) {
         if (merge || moved) {
-            Tile start = tiles.get(startIndex);
-            Tile finish = tiles.get(endIndex);
+            Tile start = Tiles.get(startIndex);
+            Tile finish = Tiles.get(endIndex);
 
-            Tile blank = new Tile(start.posX, start.posY);
-            grid.getChildren().add(blank.getTile());
+            Tile blank = new Tile(start.getPosX(), start.getPosY());
+            gameBoard.getChildren().add(blank.getTile());
 
-            tiles.set(endIndex, start);
-            tiles.set(startIndex, blank);
+            Tiles.set(endIndex, start);
+            Tiles.set(startIndex, blank);
 
-            int distanceX = finish.posX - start.posX;
-            int distanceY = finish.posY - start.posY;
-            boolean test = merge;
-            int skaitliukas = generator[0];
+            int distanceX = finish.getPosX() - start.getPosX();
+            int distanceY = finish.getPosY() - start.getPosY();
+            int counter = generator[0];
 
-            start.posX = finish.posX;
-            start.posY = finish.posY;
+            start.setPos(finish.getPosX(), finish.getPosY());
 
             TranslateTransition trans = new TranslateTransition();
             trans.setDuration(Duration.millis(150));
@@ -90,21 +91,25 @@ public class Main extends Application {
             trans.setNode(start.getTile());
 
             trans.setOnFinished(event -> {
-                grid.getChildren().remove(finish.getTile());
-                if (test) {
-                    for (Tile c : tiles) {
+                gameBoard.getChildren().remove(finish.getTile());
+                if (merge) {
+                    for (Tile c : Tiles) {
                         c.increaseNumber();
                     }
                 }
-                if (skaitliukas == 1)
-                    generateNumber(tiles);
+                if (counter == 1)
+                    generateNumber();
+
+                if (Tile.usedTiles == 16) {
+                    maybeEnd();
+                }
             });
             trans.play();
             generator[0]--;
         }
     }
 
-    public int getNextIndex(int currentIndex, int movementDirection) {
+    private int getNextIndex(int currentIndex, int movementDirection) {
         switch (movementDirection) {
             case 0: return currentIndex - 4; // Higher block
             case 1: return currentIndex + 4; // Lower block
@@ -114,7 +119,7 @@ public class Main extends Application {
         }
     }
 
-    public boolean isAvailable(int movementDirection, int currentIndex) {
+    private boolean isAvailable(int movementDirection, int currentIndex) {
         switch (movementDirection) {
             case 0: return currentIndex >= 4;           // Higher block
             case 1: return currentIndex <= 11;          // Lower block
@@ -146,7 +151,7 @@ public class Main extends Application {
         }
     }
 
-    public void findDestination(LinkedList<Tile> tiles, Pane grid, int movementDirection) {
+    private void findDestination(int movementDirection) {
         boolean moved, merge;
         int currentIndex, end;
         int[] generator = {1};
@@ -154,18 +159,19 @@ public class Main extends Application {
         for (int i : sequenceInstructions[movementDirection]) {
             currentIndex = i;
             Tile nextTile;
-            Tile startingTile = tiles.get(i);
+            Tile startingTile = Tiles.get(i);
             merge = false;
             moved = false;
 
             if (startingTile.isUsed()) {
                 while (true) {
                     if (isAvailable(movementDirection, currentIndex)) {
-                        nextTile = tiles.get(getNextIndex(currentIndex, movementDirection));
+                        nextTile = Tiles.get(getNextIndex(currentIndex, movementDirection));
                         if (nextTile.isUsed()) {
                             if (startingTile.getNumber() == nextTile.getNumber()) {
                                 merge = true;
-                                startingTile.realPower *= 2;
+                                Tile.usedTiles--;
+                                startingTile.increasePower();
                                 currentIndex = getNextIndex(currentIndex, movementDirection);
                                 break;
                             } else break;
@@ -180,11 +186,10 @@ public class Main extends Application {
             }
 
             end = currentIndex;
-            moveBlocks(merge, moved, i, end, tiles, grid, generator);
+            moveBlocks(merge, moved, i, end, generator);
 
             if (merge) {
-                playSound(startingTile.realPower);
-                //updateScore(startingTile.realPower);
+                playSound(startingTile.getPower());
             }
         }
     }
@@ -206,7 +211,7 @@ public class Main extends Application {
 //        labelScore.setText(score + "");
 //    }
 
-    public void generateDesign(Pane gameBoard, StackPane scorePane) {
+    private void generateDesign() {
         Rectangle rectGameBoard = new Rectangle(340, 340);
         rectGameBoard.getStyleClass().add("rectGameBoard");
         Image img = new Image("background.png");
@@ -215,10 +220,10 @@ public class Main extends Application {
         obj.setFitWidth(336);
         obj.setFitHeight(336);
         obj.setX(82);
-        obj.setY(102);
+        obj.setY(82);
 
         //DESIGN
-        rectGameBoard.setY(100);
+        rectGameBoard.setY(80);
         rectGameBoard.setX(80);
         rectGameBoard.setArcWidth(20);
         rectGameBoard.setArcHeight(20);
@@ -232,27 +237,54 @@ public class Main extends Application {
         gameBoard.getChildren().addAll(rectGameBoard, obj);
     }
 
-    public void setGrid(Pane grid, LinkedList<Tile> tiles) {
+    private void setGrid() {
         Tile tile;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                tile = new Tile(100 + 78 * j, 121 + 78 * i);
-                grid.getChildren().add(tile.getTile());
-                tiles.add(tile);
+                tile = new Tile(100 + 78 * j, 100 + 78 * i);
+                gameBoard.getChildren().add(tile.getTile());
+                Tiles.add(tile);
             }
         }
     }
 
-    public void generateNumber(LinkedList<Tile> tiles) {
+    private void generateNumber() {
         boolean generated = false;
         Tile tile;
         while (!generated) {
             int randomNum = ThreadLocalRandom.current().nextInt(0, 16);
-            tile = tiles.get(randomNum);
+            tile = Tiles.get(randomNum);
             if (!tile.isUsed()) {
                 tile.insertNumber();
                 generated = true;
+                Tile.usedTiles++;
             }
+        }
+    }
+
+    private void maybeEnd() {
+        //Check rows
+        boolean end = true;
+        for (int i = 0; i <= 14; i += 2) {
+            if (Tiles.get(i).getPower() == Tiles.get(i + 1).getPower()) {
+                end = false;
+                break;
+            }
+        }
+
+        //Check columns
+        for (int i = 0; i <= 3; i++) {
+            for (int j = i; j <= i + 12; j += 8) {
+                if (Tiles.get(i).getPower() == Tiles.get(i + 4).getPower()) {
+                    end = false;
+                    break;
+                }
+            }
+        }
+
+        if (end) {
+            //GAME OVER
+            resetGame();
         }
     }
 
