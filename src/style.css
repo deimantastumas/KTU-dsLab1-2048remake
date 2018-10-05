@@ -1,0 +1,8 @@
+.mainBg {
+    -fx-background-color: "#222f3e";
+}
+
+.rectGameBoard {
+    -fx-background-image: url("background.png");
+}
+
