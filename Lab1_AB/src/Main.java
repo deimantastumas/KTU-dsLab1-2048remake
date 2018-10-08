@@ -85,7 +85,7 @@ public class Main extends Application {
             start.setPos(finish.getPosX(), finish.getPosY());
 
             TranslateTransition trans = new TranslateTransition();
-            trans.setDuration(Duration.millis(150));
+            trans.setDuration(Duration.millis(80));
             trans.setByX(distanceX);
             trans.setByY(distanceY);
             trans.setNode(start.getTile());
@@ -168,7 +168,7 @@ public class Main extends Application {
                     if (isAvailable(movementDirection, currentIndex)) {
                         nextTile = Tiles.get(getNextIndex(currentIndex, movementDirection));
                         if (nextTile.isUsed()) {
-                            if (startingTile.getNumber() == nextTile.getNumber()) {
+                            if (startingTile.getPower() == nextTile.getPower()) {
                                 merge = true;
                                 Tile.usedTiles--;
                                 startingTile.increasePower();

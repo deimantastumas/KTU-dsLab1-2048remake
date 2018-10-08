@@ -24,10 +24,6 @@ import javafx.scene.text.Font;
             bgBlock.setLayoutY(posY);
         }
 
-        int getNumber() {
-            return realPower;
-        }
-
         StackPane getTile() {
             return bgBlock;
         }
